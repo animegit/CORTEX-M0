@@ -1,0 +1,160 @@
+1. push pop
+
+	PRESERVE8
+		THUMB
+		AREA |.text|,CODE,READONLY
+	EXPORT __main
+
+__main
+	LDR r1,=0x00000200
+	LDR r2,=0x00000400
+	LDMIA r1!,{r3,r4}
+	MOV SP,r2
+	PUSH {r3,r4}
+	POP {r1,r2}
+STOP B STOP
+	END
+
+2) y = 2x+9
+
+Main.asm-->
+
+	PRESERVE8
+		THUMB
+		AREA |.text|,CODE,READONLY
+	EXPORT __main
+	EXTERN func
+
+__main
+	MOVS r0,#10
+	BL func
+STOP B STOP
+	END
+
+func.asm-->
+
+	PRESERVE8
+		THUMB
+		AREA |.text|,CODE,READONLY
+	EXPORT func
+
+func
+	MOVS r1,r0
+	MOVS r2,#2
+	MULS r1,r2,r1
+	ADDS r1,r1,#9
+	BX LR
+STOP B STOP
+	END
+
+3)sum of n array elements
+
+	PRESERVE8
+		THUMB
+		AREA |.text|,CODE,READONLY
+	EXPORT __main
+
+DataIn EQU 0x20000100
+Sum EQU 0x20000500
+
+__main
+	LDR r0,=DataIn
+	MOVS r1,#10
+	MOVS r2,#0
+add_loop
+	LDM r0!,{r3}
+	ADDS r2,r3
+	SUBS r1,#1
+	BNE add_loop
+	LDR r0,=Sum
+	STR r2,[r0]
+STOP B STOP
+	END
+
+4) switch case
+
+	PRESERVE8
+		THUMB
+		AREA |.text|,CODE,READONLY
+	EXPORT __main
+
+__main
+	LDR r0,=2
+	CMP r0,#3
+	BHI default_case
+	MOVS r2,#4
+	MULS r0,r2,r0
+	LDR r1,=BranchTable
+	LDR r2,[r1,r0]
+	BX r2
+	ALIGN 4
+BranchTable
+	DCD Dest0
+	DCD Dest1
+	DCD Dest2
+	DCD Dest3s
+default_case
+stop B stop
+Dest0 ldr r0,=10
+stop1 B stop1
+Dest1 ldr r0,=20
+stop2 B stop2
+Dest2 ldr r0,=30
+stop3 B stop3
+Dest3 ldr r0,=40
+stop4 B stop4
+	END
+
+5) light lED
+
+#include<stdio.h>
+#include "NUC1xx.h"
+#include "Driver\DrvGPIO.h"
+#include "Driver\DrvUART.h"
+#include "Driver\DrvSYS.h"
+
+void EINT1Callback(void)
+{
+	DrvGPIO_ClrBit(E_GPC,14);
+	DrvSYS_Delay(100000);
+	DrvGPIO_SetBit(E_GPC,14);
+	DrvSYS_Delay(100000);
+}
+
+int main(void)
+{
+	UNLOCKREG();
+	DrvSYS_SetOscCtrl(E_SYS_XTL12M,1);
+	DrvSYS_Delay(5000);
+	DrvSYS_SelectHCLKSource(0);
+	LOCKREG();
+	
+	DrvGPIO_Open(E_GPC,14,E_IO_OUTPUT);
+	
+	DrvGPIO_Open(E_GPB,14,E_IO_OUTPUT);
+	
+	while(1)
+	{
+		DrvGPIO_EnableEINT1(E_IO_BOTH_EDGE,E_MODE_EDGE,EINT1Callback);
+	}
+}
+
+6) display message
+
+#include "NUC1xx.h"
+#include "Driver\DrvGPIO.h"
+#include "Driver\DrvSYS.h"
+#include "NUC1xx-LB_002\LCD_Driver.h"
+
+int main(void)
+{
+	UNLOCKREG();
+	DrvSYS_Open(48000000);
+	LOCKREG();
+	
+	Initial_panel();
+	clr_all_panel();
+	
+	print_lcd(0,"Welcome to MSRIT");
+	
+}
